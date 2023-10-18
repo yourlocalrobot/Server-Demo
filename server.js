@@ -4,13 +4,12 @@ const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const mysql = require('mysql');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 const port = 3000;
-
-const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -52,23 +51,27 @@ db.connect((err) => {
   });
 });
 
-// Create an empty array for NPCs and players
-
-let players = {};
-
-socket.on("playerMove", (data) => {
-  players[socket.id] = { x: data.x, y: data.y };
-});
-
-setInterval(() => {
-  io.emit("updatePlayers", players);
-}, 1000);
-
-
+// Empty arrays for NPCs and players
 let npcs = [
-  { name: "NPC1", stats: {}, x: 100, y: 100 },
+  { name: "NPC1", stats: {}, x: 100, y: 100 }
   // Add more NPCs here
 ];
+let players = {};
+
+// Initialize Socket.io events
+io.on("connection", (socket) => {
+  console.log("New client connected");
+
+  socket.emit("updateNPCs", npcs);
+
+  socket.on("playerMove", (data) => {
+    players[socket.id] = { x: data.x, y: data.y };
+  });
+
+  socket.on("chatMessage", (message) => {
+    io.emit("newChatMessage", message);
+  });
+});
 
 // Update NPC positions periodically
 setInterval(() => {
@@ -76,25 +79,13 @@ setInterval(() => {
     npc.x += Math.floor(Math.random() * 11) - 5;
     npc.y += Math.floor(Math.random() * 11) - 5;
   });
+  io.emit("updateNPCs", npcs);
 }, 1000);
 
-
-// Initialize Socket.io events
-io.on("connection", (socket) => {
-  console.log("New client connected");
-
-  // Send initial NPC states
-  socket.emit("updateNPCs", npcs);
-
-  // Update all clients when NPCs move
-  setInterval(() => {
-    io.emit("updateNPCs", npcs);
-  }, 1000);
-});
-
-socket.on("chatMessage", (message) => {
-  io.emit("newChatMessage", message);
-});
+// Update players periodically
+setInterval(() => {
+  io.emit("updatePlayers", players);
+}, 1000);
 
 app.get('/', (req, res) => {
   res.send('Hello World!');
