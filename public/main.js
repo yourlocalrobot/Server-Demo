@@ -5,6 +5,17 @@ const socket = io();
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+// Set canvas dimensions
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// If you want to handle window resizing:
+window.addEventListener('resize', function(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    drawAllEntities(); // Redraw everything to fit the new size
+});
+
 // Initial player configuration
 let playerX = 50;
 let playerY = 50;
@@ -50,21 +61,21 @@ function handleKeydown(event) {
 function drawPlayer(x, y) {
   ctx.fillStyle = "blue";
   ctx.beginPath();
-  ctx.arc(x, y, 25, 0, Math.PI * 2);
+  ctx.arc(x, y, 15, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawOtherPlayer(x, y) {
   ctx.fillStyle = "red";
   ctx.beginPath();
-  ctx.arc(x, y, 25, 0, Math.PI * 2);
+  ctx.arc(x, y, 15, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawNPC(npc) {
   ctx.fillStyle = "green";
   ctx.beginPath();
-  ctx.arc(npc.x, npc.y, 25, 0, Math.PI * 2);
+  ctx.arc(npc.x, npc.y, 15, 0, Math.PI * 2);
   ctx.fill();
 }
 
