@@ -56,7 +56,9 @@ db.connect((err) => {
 
 // Initialize game data
 const npcs = [
-  { name: "NPC1", stats: {}, x: 100, y: 100 }
+  { name: "NPC1", stats: { Happiness: "maximum" }, x: 100, y: 100 },
+  { name: "NPC2", stats: { Happiness: "maximum" }, x: 150, y: 150 },
+  { name: "NPC3", stats: { Happiness: "maximum" }, x: 200, y: 200 }
 ];
 const players = {};
 
