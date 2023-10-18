@@ -69,8 +69,18 @@ function movePlayer() {
 
     if (distance > speed) {
         const angle = Math.atan2(dy, dx);
-        playerX += speed * Math.cos(angle);
-        playerY += speed * Math.sin(angle);
+        
+        // Calculate the new positions
+        const newX = playerX + speed * Math.cos(angle);
+        const newY = playerY + speed * Math.sin(angle);
+
+        // Collision detection for player
+        if (newX >= 0 && newX <= canvas.width) {
+            playerX = newX;
+        }
+        if (newY >= 0 && newY <= canvas.height) {
+            playerY = newY;
+        }
 
         // Emit the player's new position to the server
         socket.emit('updatePlayerPosition', { x: playerX, y: playerY });
@@ -81,8 +91,14 @@ function movePlayer() {
         animationFrameId = requestAnimationFrame(movePlayer);
     } else {
         // Player has reached or is very close to the destination
-        playerX = destination.x;
-        playerY = destination.y;
+        // Collision detection for player at destination
+        if (destination.x >= 0 && destination.x <= canvas.width) {
+            playerX = destination.x;
+        }
+        if (destination.y >= 0 && destination.y <= canvas.height) {
+            playerY = destination.y;
+        }
+        
         drawAllEntities();
     }
 }
@@ -99,20 +115,30 @@ function handleArrowKeyPress(event) {
 
 // Event handler for keypress
 function handleKeydown(event) {
+  let dx = 0, dy = 0;
   switch (event.code) {
     case "ArrowUp":
-      playerY -= 5;
+      dy = -5;
       break;
     case "ArrowDown":
-      playerY += 5;
+      dy = 5;
       break;
     case "ArrowLeft":
-      playerX -= 5;
+      dx = -5;
       break;
     case "ArrowRight":
-      playerX += 5;
+      dx = 5;
       break;
   }
+
+  // Collision detection for player
+  if (playerX + dx >= 0 && playerX + dx <= canvas.width) {
+    playerX += dx;
+  }
+  if (playerY + dy >= 0 && playerY + dy <= canvas.height) {
+    playerY += dy;
+  }
+
   socket.emit('updatePlayerPosition', { x: playerX, y: playerY });
   drawAllEntities();
 }

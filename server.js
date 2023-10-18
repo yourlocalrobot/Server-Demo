@@ -103,8 +103,16 @@ io.on("connection", (socket) => {
 // Periodically update NPC positions
 setInterval(() => {
   npcs.forEach((npc) => {
-    npc.x += Math.floor(Math.random() * 11) - 5;
-    npc.y += Math.floor(Math.random() * 11) - 5;
+    let dx = Math.floor(Math.random() * 11) - 5;
+    let dy = Math.floor(Math.random() * 11) - 5;
+
+    // Collision detection for NPCs
+    if (npc.x + dx >= 0 && npc.x + dx <= canvas.width) {
+      npc.x += dx;
+    }
+    if (npc.y + dy >= 0 && npc.y + dy <= canvas.height) {
+      npc.y += dy;
+    }
   });
   io.emit("updateNPCs", npcs);
 }, 1000);
