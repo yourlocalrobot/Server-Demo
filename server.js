@@ -11,6 +11,14 @@ const server = http.createServer(app);
 const io = socketIO(server);
 const port = 3000;
 
+// Initialize MySQL connection
+const db = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  multipleStatements: true
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Connect to MySQL
