@@ -14,8 +14,9 @@ const server = http.createServer(app);
 const io = socketIO(server);
 const port = 3000;
 
-// Initialize MySQL connection using environment variables
-const db = mysql.createConnection({
+// Initialize MySQL connection pool using environment variables
+const pool = mysql.createPool({
+  connectionLimit: 10,  // Adjust the number as needed
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
@@ -25,20 +26,18 @@ const db = mysql.createConnection({
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Connect to MySQL
-db.connect((err) => {
+// Connect to MySQL and set up the database/table
+pool.getConnection((err, connection) => {
   if (err) throw err;
+
   console.log('Connected to the database.');
 
-  // Ensure the database 'gameDB' exists
-  db.query('CREATE DATABASE IF NOT EXISTS gameDB;', (err) => {
+  connection.query('CREATE DATABASE IF NOT EXISTS gameDB;', (err) => {
     if (err) throw err;
 
-    // Switch to the 'gameDB' database
-    db.query('USE gameDB', (err) => {
+    connection.query('USE gameDB', (err) => {
       if (err) throw err;
 
-      // Ensure the 'npc' table exists within 'gameDB'
       const createTableQuery = `
         CREATE TABLE IF NOT EXISTS npc (
           id INT AUTO_INCREMENT,
@@ -47,8 +46,10 @@ db.connect((err) => {
           sprite_url VARCHAR(255),
           PRIMARY KEY(id)
         );`;
-      db.query(createTableQuery, (err) => {
+
+      connection.query(createTableQuery, (err) => {
         if (err) throw err;
+        connection.release();
       });
     });
   });
