@@ -6,13 +6,13 @@ const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 // Set canvas dimensions
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+ctx.width = window.innerWidth;
+ctx.height = window.innerHeight;
 
 // If you want to handle window resizing:
 window.addEventListener('resize', function(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    ctx.width = window.innerWidth;
+    ctx.height = window.innerHeight;
     drawAllEntities(); // Redraw everything to fit the new size
 });
 
