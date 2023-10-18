@@ -14,6 +14,10 @@ const server = http.createServer(app);
 const io = socketIO(server);
 const port = 3000;
 
+// Define canvas dimensions at the top of your server.js
+const CANVAS_WIDTH = 800;  // Replace with your actual canvas width
+const CANVAS_HEIGHT = 600; // Replace with your actual canvas height
+
 // Initialize MySQL connection pool using environment variables
 const pool = mysql.createPool({
   connectionLimit: 10,  // Adjust the number as needed
@@ -107,10 +111,10 @@ setInterval(() => {
     let dy = Math.floor(Math.random() * 11) - 5;
 
     // Collision detection for NPCs
-    if (npc.x + dx >= 0 && npc.x + dx <= canvas.width) {
+    if (npc.x + dx >= 0 && npc.x + dx <= CANVAS_WIDTH) {
       npc.x += dx;
     }
-    if (npc.y + dy >= 0 && npc.y + dy <= canvas.height) {
+    if (npc.y + dy >= 0 && npc.y + dy <= CANVAS_HEIGHT) {
       npc.y += dy;
     }
   });
