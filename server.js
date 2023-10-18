@@ -61,38 +61,40 @@ let players = {};
 io.on("connection", (socket) => {
   console.log("New client connected");
 
-  console.log("Emitting initial NPC data to client:", npcs);
+  console.log("Emitting NPCs data:", npcs);  // Debugging log
   socket.emit("updateNPCs", npcs);
 
+  // Listen for playerMove event
   socket.on("playerMove", (data) => {
-    console.log("Received playerMove data:", data);
+	console.log(`Received playerMove event from ${socket.id} with data:`, data); // Debugging log
     players[socket.id] = { x: data.x, y: data.y };
   });
 
+  // Handle 'updatePlayerPosition' event
   socket.on("updatePlayerPosition", (data) => {
-    console.log("Received updatePlayerPosition data:", data);
+    // Update the player's position
     players[socket.id] = { x: data.x, y: data.y };
-    console.log("Broadcasting updated player data:", { id: socket.id, x: data.x, y: data.y });
+
+    // Broadcast updated player's position to other clients
     socket.broadcast.emit("updatePlayer", { id: socket.id, x: data.x, y: data.y });
   });
 
   socket.on("chatMessage", (message) => {
-    console.log("Received chatMessage:", message);
     io.emit("newChatMessage", message);
   });
 });
 
+// Update NPC positions periodically
 setInterval(() => {
   npcs.forEach((npc) => {
     npc.x += Math.floor(Math.random() * 11) - 5;
     npc.y += Math.floor(Math.random() * 11) - 5;
   });
-  console.log("Emitting updated NPC data to all clients:", npcs);
   io.emit("updateNPCs", npcs);
 }, 1000);
 
+// Update players periodically
 setInterval(() => {
-  console.log("Emitting updated player data to all clients:", players);
   io.emit("updatePlayers", players);
 }, 1000);
 
