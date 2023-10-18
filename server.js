@@ -13,14 +13,6 @@ const port = 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Initialize MySQL connection
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  multipleStatements: true
-});
-
 // Connect to MySQL
 db.connect((err) => {
   if (err) throw err;
@@ -58,14 +50,23 @@ let npcs = [
 ];
 let players = {};
 
-// Initialize Socket.io events
 io.on("connection", (socket) => {
   console.log("New client connected");
 
   socket.emit("updateNPCs", npcs);
 
+  // Listen for playerMove event
   socket.on("playerMove", (data) => {
     players[socket.id] = { x: data.x, y: data.y };
+  });
+
+  // Handle 'updatePlayerPosition' event
+  socket.on("updatePlayerPosition", (data) => {
+    // Update the player's position
+    players[socket.id] = { x: data.x, y: data.y };
+
+    // Broadcast updated player's position to other clients
+    socket.broadcast.emit("updatePlayer", { id: socket.id, x: data.x, y: data.y });
   });
 
   socket.on("chatMessage", (message) => {
