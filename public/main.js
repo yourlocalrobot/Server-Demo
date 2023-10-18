@@ -99,3 +99,9 @@ socket.on("updateNPCs", (updatedNPCs) => {
   npcs = updatedNPCs;
   drawAllEntities();
 });
+
+socket.on("playerDisconnected", (playerId) => {
+  delete otherPlayers[playerId];
+  drawAllEntities();
+});
+

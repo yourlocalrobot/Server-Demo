@@ -82,6 +82,19 @@ io.on("connection", (socket) => {
   socket.on("chatMessage", (message) => {
     io.emit("newChatMessage", message);
   });
+  
+  // Remove players when they disconnect
+  socket.on('disconnect', () => {
+	  console.log(`Client with ID ${socket.id} disconnected`);
+	  
+	  // Remove the player from the players object
+	  delete players[socket.id];
+	
+	  // Inform other clients about the disconnection
+	  socket.broadcast.emit('playerDisconnected', socket.id);
+	});
+
+  
 });
 
 // Periodically update NPC positions
