@@ -5,14 +5,16 @@ const socket = io();
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+const circleRadius = 15; // Assuming you're using a radius of 15
+
 // Set canvas dimensions
-ctx.width = window.innerWidth;
-ctx.height = window.innerHeight;
+canvas.width = window.innerWidth - (2 * circleRadius);
+canvas.height = window.innerHeight - (2 * circleRadius);
 
 // If you want to handle window resizing:
 window.addEventListener('resize', function(){
-    ctx.width = window.innerWidth;
-    ctx.height = window.innerHeight;
+    canvas.width = window.innerWidth - (2 * circleRadius);
+	canvas.height = window.innerHeight - (2 * circleRadius);
     drawAllEntities(); // Redraw everything to fit the new size
 });
 
@@ -61,21 +63,21 @@ function handleKeydown(event) {
 function drawPlayer(x, y) {
   ctx.fillStyle = "blue";
   ctx.beginPath();
-  ctx.arc(x, y, 15, 0, Math.PI * 2);
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawOtherPlayer(x, y) {
   ctx.fillStyle = "red";
   ctx.beginPath();
-  ctx.arc(x, y, 15, 0, Math.PI * 2);
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawNPC(npc) {
   ctx.fillStyle = "green";
   ctx.beginPath();
-  ctx.arc(npc.x, npc.y, 15, 0, Math.PI * 2);
+  ctx.arc(npc.x, npc.y, circleRadius, 0, Math.PI * 2);
   ctx.fill();
 }
 
