@@ -53,13 +53,47 @@ db.connect((err) => {
 });
 
 // Create an empty array for NPCs and players
-let npcs = [];
-let players = [];
+
+let players = {};
+
+socket.on("playerMove", (data) => {
+  players[socket.id] = { x: data.x, y: data.y };
+});
+
+setInterval(() => {
+  io.emit("updatePlayers", players);
+}, 1000);
+
+
+let npcs = [
+  { name: "NPC1", stats: {}, x: 100, y: 100 },
+  // Add more NPCs here
+];
+
+// Update NPC positions periodically
+setInterval(() => {
+  npcs.forEach((npc) => {
+    npc.x += Math.floor(Math.random() * 11) - 5;
+    npc.y += Math.floor(Math.random() * 11) - 5;
+  });
+}, 1000);
+
 
 // Initialize Socket.io events
 io.on("connection", (socket) => {
   console.log("New client connected");
-  // More logic will go here
+
+  // Send initial NPC states
+  socket.emit("updateNPCs", npcs);
+
+  // Update all clients when NPCs move
+  setInterval(() => {
+    io.emit("updateNPCs", npcs);
+  }, 1000);
+});
+
+socket.on("chatMessage", (message) => {
+  io.emit("newChatMessage", message);
 });
 
 app.get('/', (req, res) => {
