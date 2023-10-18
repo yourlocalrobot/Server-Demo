@@ -13,8 +13,8 @@ canvas.height = window.innerHeight - (2 * circleRadius);
 
 // If you want to handle window resizing:
 window.addEventListener('resize', function(){
-    canvas.width = window.innerWidth - (2 * circleRadius);
-	canvas.height = window.innerHeight - (2 * circleRadius);
+    canvas.width = window.innerWidth;// - (2 * circleRadius);
+	canvas.height = window.innerHeight;// - (2 * circleRadius);
     drawAllEntities(); // Redraw everything to fit the new size
 });
 
@@ -38,6 +38,64 @@ document.addEventListener("keydown", handleKeydown);
 document.addEventListener("mousedown", (event) => {
   event.preventDefault();
 });
+
+//click
+canvas.addEventListener("click", moveToClickPosition);
+document.addEventListener('keydown', handleArrowKeyPress);
+
+let destination = { x: null, y: null };
+const speed = 3;
+let animationFrameId = null; // To keep track of the animation frame
+
+function moveToClickPosition(event) {
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    destination.x = x;
+    destination.y = y;
+
+    if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId); // Clear any existing animation frame
+    }
+
+    requestAnimationFrame(movePlayer);
+}
+
+function movePlayer() {
+    const dx = destination.x - playerX;
+    const dy = destination.y - playerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance > speed) {
+        const angle = Math.atan2(dy, dx);
+        playerX += speed * Math.cos(angle);
+        playerY += speed * Math.sin(angle);
+
+        // Emit the player's new position to the server
+        socket.emit('updatePlayerPosition', { x: playerX, y: playerY });
+
+        drawAllEntities();
+
+        // Continue the animation
+        animationFrameId = requestAnimationFrame(movePlayer);
+    } else {
+        // Player has reached or is very close to the destination
+        playerX = destination.x;
+        playerY = destination.y;
+        drawAllEntities();
+    }
+}
+
+function handleArrowKeyPress(event) {
+    const ARROW_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+
+    if (ARROW_KEYS.includes(event.key)) {
+        // Cancel the movement towards the clicked position
+        destination.x = playerX;
+        destination.y = playerY;
+    }
+}
 
 // Event handler for keypress
 function handleKeydown(event) {
