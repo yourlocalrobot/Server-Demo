@@ -25,6 +25,7 @@ let playerY = 50;
 // Data structures to hold other players and NPCs
 let otherPlayers = {};
 let npcs = [];
+let entities = [];
 
 // Initialize canvas with a black background
 ctx.fillStyle = "black";
@@ -149,7 +150,8 @@ function handleKeydown(event) {
   drawAllEntities();
 }
 
-// Drawing functions
+// Drawing functions 
+/*
 function drawPlayer(x, y) {
   ctx.fillStyle = "blue";
   ctx.beginPath();
@@ -171,7 +173,14 @@ function drawNPC(npc) {
   ctx.fill();
 }
 
-function drawAllEntities() {
+function drawNPC(npc) {
+  ctx.fillStyle = npc.appearance.color;
+  ctx.beginPath();
+  ctx.arc(npc.x, npc.y, circleRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAllEntities_old() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawPlayer(playerX, playerY);
@@ -195,6 +204,20 @@ function drawAllEntities() {
   ctx.closePath();
   ctx.fill();
   
+}*/
+
+function drawPlayer(x, y, object) {
+  //ctx.fillStyle = object.appearance.color;
+  ctx.beginPath();
+  //ctx.arc(x, y, object.appearance.radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAllEntities() {
+  
+  //draw the player object
+  //drawPlayer(playerX, playerY, allEntities.playerObj[0]);
+  
 }
 
 // Socket listeners
@@ -216,6 +239,17 @@ socket.on("updateNPCs", (updatedNPCs) => {
 
 socket.on("playerDisconnected", (playerId) => {
   delete otherPlayers[playerId];
+  drawAllEntities();
+});
+
+socket.on("playerDisconnected", (playerId) => {
+  delete otherPlayers[playerId];
+  drawAllEntities();
+});
+
+socket.on('updateEntities', (allEntities) => {
+  // Do something with the received 'allEntities' data
+  console.log(JSON.stringify(allEntities[1], null, 2));
   drawAllEntities();
 });
 

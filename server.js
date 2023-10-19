@@ -21,9 +21,13 @@ const CANVAS_HEIGHT = 600; // Replace with your actual canvas height
 
 // Dynamic Entity Loading
 const npcs = loadEntities('./src/entities/npcs');
-const players = loadEntities('./src/entities/player');
+const playerObj = loadEntities('./src/entities/player');
 const otherPlayers = loadEntities('./src/entities/other-players');
 const polygons = loadEntities('./src/entities/polygons');
+
+const players = {};
+
+const allEntities = [npcs, playerObj, otherPlayers, polygons];
 
 // Define the yellow triangle vertices
 const polygon = [
@@ -105,7 +109,7 @@ const npcs = [
   { name: "NPC2", stats: { Happiness: "maximum" }, x: 150, y: 150 },
   { name: "NPC3", stats: { Happiness: "maximum" }, x: 200, y: 200 }
 ];
-const players = {};*/
+*/
 
 // Socket.io event handling
 io.on("connection", (socket) => {
@@ -113,6 +117,8 @@ io.on("connection", (socket) => {
 
   // Send initial NPC data to connected client
   socket.emit("updateNPCs", npcs);
+  
+  socket.emit("updateEntities", allEntities);
 
   // Update player position on move event
   socket.on("playerMove", (data) => {
@@ -125,10 +131,10 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("updatePlayer", { id: socket.id, x: data.x, y: data.y });
   });
 
-  // Broadcast chat messages to all clients
+  /* Broadcast chat messages to all clients
   socket.on("chatMessage", (message) => {
     io.emit("newChatMessage", message);
-  });
+  });*/
   
   // Remove players when they disconnect
   socket.on('disconnect', () => {
