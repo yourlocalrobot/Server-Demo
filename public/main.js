@@ -54,6 +54,8 @@ let destination = { x: null, y: null };
 const speed = 3;
 let animationFrameId = null;
 
+// ... (rest of your existing code remains unchanged)
+
 function moveToClickPosition(event) {
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -157,53 +159,52 @@ function handleKeydown(event) {
 }
 
 // Drawing functions
-function drawEntity(entity) {
-  switch (entity.appearance.shape) {
-    case 'circle':
-      ctx.fillStyle = entity.appearance.color;
-      ctx.beginPath();
-      ctx.arc(entity.x, entity.y, entity.appearance.radius, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    case 'square':
-      ctx.fillStyle = entity.appearance.color;
-      ctx.fillRect(entity.x, entity.y, entity.appearance.size, entity.appearance.size);
-      break;
-    case 'triangle':
-      ctx.fillStyle = entity.appearance.color;
-      ctx.beginPath();
-      ctx.moveTo(entity.x + entity.appearance.vertices[0].x, entity.y + entity.appearance.vertices[0].y);
-      for (let i = 1; i < entity.appearance.vertices.length; i++) {
-        ctx.lineTo(entity.x + entity.appearance.vertices[i].x, entity.y + entity.appearance.vertices[i].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      break;
-    default:
-      console.warn('Unknown shape:', entity.appearance.shape);
-  }
+function drawPlayer(x, y) {
+  ctx.fillStyle = "blue";
+  ctx.beginPath();
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawOtherPlayer(x, y) {
+  ctx.fillStyle = "red";
+  ctx.beginPath();
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawNPC(npc) {
+  ctx.fillStyle = "green";
+  ctx.beginPath();
+  ctx.arc(npc.x, npc.y, circleRadius, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawAllEntities() {
-  // Clear the canvas
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Draw the player
-  drawEntity({ x: playerX, y: playerY, appearance: { shape: 'circle', color: 'blue', radius: circleRadius } });
-
-  // Draw other players
+  drawPlayer(playerX, playerY);
+  
   for (let playerId in otherPlayers) {
     let player = otherPlayers[playerId];
-    drawEntity(player);
+    drawOtherPlayer(player.x, player.y);
   }
-
-  // Draw NPCs
+  
   for (let npc of npcs) {
-    drawEntity(npc);
+    drawNPC(npc);
   }
+  
+  // Draw the yellow polygon
+  ctx.fillStyle = "yellow";
+  ctx.beginPath();
+  ctx.moveTo(polygon[0].x, polygon[0].y);
+  for (let i = 1; i < polygon.length; i++) {
+    ctx.lineTo(polygon[i].x, polygon[i].y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  
 }
-
 
 // Socket listeners
 socket.on("updatePlayers", (players) => {
@@ -227,11 +228,11 @@ socket.on("playerDisconnected", (playerId) => {
   drawAllEntities();
 });
 
-/*const polygon = [
+const polygon = [
   { x: 400, y: 300 },
   { x: 450, y: 300 },
   { x: 425, y: 250 }
-];*/
+];
 
 function isInsidePolygon(point, polygon) {
   let x = point.x, y = point.y;
