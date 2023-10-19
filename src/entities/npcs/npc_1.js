@@ -3,5 +3,5 @@ module.exports = {
   stats: { Happiness: "maximum" },
   x: 100,
   y: 100,
-  appearance: { color: "green", shape: "circle" }
+  appearance: { color: "pink", shape: "square" }
 };
