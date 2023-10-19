@@ -42,15 +42,17 @@ function isInsidePolygon(point, polygon) {
 // Function to dynamically load all entity files from a folder
 function loadEntities(folderPath) {
   const entities = [];
-  const files = fs.readdirSync(folderPath);
+  const absoluteFolderPath = path.join(__dirname, folderPath);
+  const files = fs.readdirSync(absoluteFolderPath);
 
   files.forEach((file) => {
-    const entity = require(path.join(folderPath, file));
+    const entity = require(path.join(absoluteFolderPath, file));
     entities.push(entity);
   });
 
   return entities;
 }
+
 
 // Initialize MySQL connection pool using environment variables
 const pool = mysql.createPool({
