@@ -13,8 +13,8 @@ canvas.height = window.innerHeight;
 
 // If you want to handle window resizing:
 window.addEventListener('resize', function(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;// - (2 * circleRadius);
+	canvas.height = window.innerHeight;// - (2 * circleRadius);
     drawAllEntities(); // Redraw everything to fit the new size
 });
 
@@ -25,13 +25,6 @@ let playerY = 50;
 // Data structures to hold other players and NPCs
 let otherPlayers = {};
 let npcs = [];
-
-// Initialize game with data from the server
-socket.on("initializeGame", (data) => {
-  npcs = data.npcs;
-  otherPlayers = data.otherPlayers;
-  drawAllEntities();
-});
 
 // Initialize canvas with a black background
 ctx.fillStyle = "black";
@@ -46,15 +39,13 @@ document.addEventListener("mousedown", (event) => {
   event.preventDefault();
 });
 
-// Click event
+//click
 canvas.addEventListener("click", moveToClickPosition);
 document.addEventListener('keydown', handleArrowKeyPress);
 
 let destination = { x: null, y: null };
 const speed = 3;
-let animationFrameId = null;
-
-// ... (rest of your existing code remains unchanged)
+let animationFrameId = null; // To keep track of the animation frame
 
 function moveToClickPosition(event) {
     const rect = canvas.getBoundingClientRect();
