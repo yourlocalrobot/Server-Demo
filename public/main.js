@@ -237,3 +237,16 @@ function isInsidePolygon(point, polygon) {
   return inside;
 }
 
+(function() {
+  const originalConsoleLog = console.log;
+  console.log = function(message) {
+    originalConsoleLog(message);
+    
+    const consoleDiv = document.querySelector('.console');
+    if (consoleDiv) {
+      const logElement = document.createElement('div');
+      logElement.textContent = message;
+      consoleDiv.appendChild(logElement);
+    }
+  };
+})();

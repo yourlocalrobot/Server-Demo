@@ -7,6 +7,7 @@ const http = require('http');
 const socketIO = require('socket.io');
 const mysql = require('mysql');
 const path = require('path');
+const fs = require('fs');
 
 // Express setup
 const app = express();
@@ -17,6 +18,12 @@ const port = 3000;
 // Define canvas dimensions at the top of your server.js
 const CANVAS_WIDTH = 800;  // Replace with your actual canvas width
 const CANVAS_HEIGHT = 600; // Replace with your actual canvas height
+
+// Dynamic Entity Loading
+const npcs = loadEntities('./src/entities/npcs');
+const players = loadEntities('./src/entities/player');
+const otherPlayers = loadEntities('./src/entities/other-players');
+const polygons = loadEntities('./src/entities/polygons');
 
 // Define the yellow triangle vertices
 const polygon = [
@@ -46,6 +53,19 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD,
   multipleStatements: true
 });
+
+function loadEntities(folderPath) {
+  const entities = [];
+  const absoluteFolderPath = path.join(__dirname, folderPath);
+  const files = fs.readdirSync(absoluteFolderPath);
+
+  files.forEach((file) => {
+    const entity = require(path.join(absoluteFolderPath, file));
+    entities.push(entity);
+  });
+
+  return entities;
+}
 
 // Serve static files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -79,13 +99,13 @@ pool.getConnection((err, connection) => {
   });
 });
 
-// Initialize game data
+/*// Initialize game data
 const npcs = [
   { name: "NPC1", stats: { Happiness: "maximum" }, x: 100, y: 100 },
   { name: "NPC2", stats: { Happiness: "maximum" }, x: 150, y: 150 },
   { name: "NPC3", stats: { Happiness: "maximum" }, x: 200, y: 200 }
 ];
-const players = {};
+const players = {};*/
 
 // Socket.io event handling
 io.on("connection", (socket) => {
