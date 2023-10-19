@@ -18,6 +18,26 @@ const port = 3000;
 const CANVAS_WIDTH = 800;  // Replace with your actual canvas width
 const CANVAS_HEIGHT = 600; // Replace with your actual canvas height
 
+// Define the yellow triangle vertices
+const polygon = [
+  { x: 400, y: 300 },
+  { x: 450, y: 300 },
+  { x: 425, y: 250 }
+];
+
+// Function to check if a point is inside the polygon
+function isInsidePolygon(point, polygon) {
+  let x = point.x, y = point.y;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    let xi = polygon[i].x, yi = polygon[i].y;
+    let xj = polygon[j].x, yj = polygon[j].y;
+    let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 // Initialize MySQL connection pool using environment variables
 const pool = mysql.createPool({
   connectionLimit: 10,  // Adjust the number as needed
@@ -110,12 +130,14 @@ setInterval(() => {
     let dx = Math.floor(Math.random() * 11) - 5;
     let dy = Math.floor(Math.random() * 11) - 5;
 
-    // Collision detection for NPCs
-    if (npc.x + dx >= 0 && npc.x + dx <= CANVAS_WIDTH) {
-      npc.x += dx;
-    }
-    if (npc.y + dy >= 0 && npc.y + dy <= CANVAS_HEIGHT) {
-      npc.y += dy;
+    // Check for collision with the yellow polygon
+    if (!isInsidePolygon({ x: npc.x + dx, y: npc.y + dy }, polygon)) {
+      if (npc.x + dx >= 0 && npc.x + dx <= CANVAS_WIDTH) {
+        npc.x += dx;
+      }
+      if (npc.y + dy >= 0 && npc.y + dy <= CANVAS_HEIGHT) {
+        npc.y += dy;
+      }
     }
   });
   io.emit("updateNPCs", npcs);
