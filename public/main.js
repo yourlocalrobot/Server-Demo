@@ -4,8 +4,7 @@ const socket = io();
 // Canvas and context setup
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-
-const circleRadius = 15; // Assuming you're using a radius of 15
+const circleRadius = 15;
 
 // Set canvas dimensions
 canvas.width = window.innerWidth;
@@ -25,13 +24,20 @@ let playerY = 50;
 // Data structures to hold other players and NPCs
 let otherPlayers = {};
 let npcs = [];
+let allEntities = [];
+let playerObj = [];
+let humanObj = [];
+let polygons = [];
+let entities = [];
+
+//movement info
+let destination = { x: null, y: null };
+const speed = 3;
+let animationFrameId = null; // To keep track of the animation frame
 
 // Initialize canvas with a black background
 ctx.fillStyle = "black";
 ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-// Initial draw for the player
-drawPlayer(playerX, playerY);
 
 // Event listeners
 document.addEventListener("keydown", handleKeydown);
@@ -43,9 +49,42 @@ document.addEventListener("mousedown", (event) => {
 canvas.addEventListener("click", moveToClickPosition);
 document.addEventListener('keydown', handleArrowKeyPress);
 
-let destination = { x: null, y: null };
-const speed = 3;
-let animationFrameId = null; // To keep track of the animation frame
+// Socket listeners
+socket.on("updatePlayers", (players) => {
+  otherPlayers = players;
+  delete otherPlayers[socket.id];
+  drawAllEntities();
+});
+
+socket.on("updatePlayer", (playerData) => {
+  otherPlayers[playerData.id] = { x: playerData.x, y: playerData.y };
+  drawAllEntities();
+});
+
+socket.on("updatePlayerObj", (newplayerObj) => {
+  playerObj = newplayerObj[0];
+  drawAllEntities();
+});
+
+socket.on("otherPlayerObj", (otherPlayersObj) => {
+  humanObj = otherPlayersObj[0];
+  drawAllEntities();
+});
+
+socket.on("updateNPCs", (updatedNPCs) => {
+  npcs = updatedNPCs;
+  drawAllEntities();
+});
+
+socket.on("updatePolygons", (allPolygons) => {
+  polygons = allPolygons;
+  drawAllEntities();
+});
+
+socket.on("playerDisconnected", (playerId) => {
+  delete otherPlayers[playerId];
+  drawAllEntities();
+});
 
 function moveToClickPosition(event) {
     const rect = canvas.getBoundingClientRect();
@@ -63,46 +102,53 @@ function moveToClickPosition(event) {
 }
 
 function movePlayer() {
-    const dx = destination.x - playerX;
-    const dy = destination.y - playerY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+  const dx = destination.x - playerX;
+  const dy = destination.y - playerY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
 
-    if (distance > speed) {
-        const angle = Math.atan2(dy, dx);
-        
-        // Calculate the new positions
-        const newX = playerX + speed * Math.cos(angle);
-        const newY = playerY + speed * Math.sin(angle);
+  if (distance > speed) {
+    const angle = Math.atan2(dy, dx);
+    
+    // Calculate the new positions
+    const newX = playerX + speed * Math.cos(angle);
+    const newY = playerY + speed * Math.sin(angle);
 
-	          // Collision detection for player
-		  if (!isInsidePolygon({ x: newX, y: newY }, polygon)) {
-		    if (newX >= 0 && newX <= canvas.width) {
-		      playerX = newX;
-		    }
-		    if (newY >= 0 && newY <= canvas.height) {
-		      playerY = newY;
-		    }
-		  }
-
-        // Emit the player's new position to the server
-        socket.emit('updatePlayerPosition', { x: playerX, y: playerY });
-
-        drawAllEntities();
-
-        // Continue the animation
-        animationFrameId = requestAnimationFrame(movePlayer);
-    } else {
-        // Player has reached or is very close to the destination
-        // Collision detection for player at destination
-        if (destination.x >= 0 && destination.x <= canvas.width) {
-            playerX = destination.x;
-        }
-        if (destination.y >= 0 && destination.y <= canvas.height) {
-            playerY = destination.y;
-        }
-        
-        drawAllEntities();
+    // Collision detection for player
+    let canMove = true;
+    for (let polygon of polygons) {
+      if (isInsidePolygon({ x: newX, y: newY }, polygon)) {
+        canMove = false;
+        break;
+      }
     }
+
+    if (canMove) {
+      if (newX >= 0 && newX <= canvas.width) {
+        playerX = newX;
+      }
+      if (newY >= 0 && newY <= canvas.height) {
+        playerY = newY;
+      }
+    }
+
+    // Emit the player's new position to the server
+    socket.emit('updatePlayerPosition', { x: playerX, y: playerY });
+
+    drawAllEntities();
+
+    // Continue the animation
+    animationFrameId = requestAnimationFrame(movePlayer);
+  } else {
+    // Player has reached or is very close to the destination
+    if (destination.x >= 0 && destination.x <= canvas.width) {
+      playerX = destination.x;
+    }
+    if (destination.y >= 0 && destination.y <= canvas.height) {
+      playerY = destination.y;
+    }
+    
+    drawAllEntities();
+  }
 }
 
 function handleArrowKeyPress(event) {
@@ -115,7 +161,6 @@ function handleArrowKeyPress(event) {
     }
 }
 
-// Event handler for arrow keypress
 function handleKeydown(event) {
   let dx = 0, dy = 0;
   switch (event.code) {
@@ -136,7 +181,15 @@ function handleKeydown(event) {
   // Collision detection for player using arrow keys
   const newX = playerX + dx;
   const newY = playerY + dy;
-  if (!isInsidePolygon({ x: newX, y: newY }, polygon)) {
+  let canMove = true;
+  for (let polygon of polygons) {
+    if (isInsidePolygon({ x: newX, y: newY }, polygon)) {
+      canMove = false;
+      break;
+    }
+  }
+
+  if (canMove) {
     if (newX >= 0 && newX <= canvas.width) {
       playerX = newX;
     }
@@ -151,29 +204,42 @@ function handleKeydown(event) {
 
 // Drawing functions
 function drawPlayer(x, y) {
-  ctx.fillStyle = "blue";
+  ctx.fillStyle = playerObj.appearance.color;
   ctx.beginPath();
-  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
+  ctx.arc(x, y, playerObj.appearance.radius, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawOtherPlayer(x, y) {
-  ctx.fillStyle = "red";
+  ctx.fillStyle = humanObj.appearance.color;
   ctx.beginPath();
   ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawNPC(npc) {
-  ctx.fillStyle = "green";
+  ctx.fillStyle = npc.appearance.color;
   ctx.beginPath();
-  ctx.arc(npc.x, npc.y, circleRadius, 0, Math.PI * 2);
+  ctx.arc(npc.x, npc.y, npc.appearance.radius, 0, Math.PI * 2);
   ctx.fill();
+}
+
+function drawPolygon(polygon) {
+    const { vertices, appearance } = polygon;
+    ctx.beginPath();
+    ctx.moveTo(vertices[0].x, vertices[0].y);
+    for(let i = 1; i < vertices.length; i++) {
+        ctx.lineTo(vertices[i].x, vertices[i].y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = appearance.color;
+    ctx.fill();
 }
 
 function drawAllEntities() {
   ctx.fillStyle = "black";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
   drawPlayer(playerX, playerY);
   
   for (let playerId in otherPlayers) {
@@ -185,52 +251,22 @@ function drawAllEntities() {
     drawNPC(npc);
   }
   
-  // Draw the yellow polygon
-  ctx.fillStyle = "yellow";
-  ctx.beginPath();
-  ctx.moveTo(polygon[0].x, polygon[0].y);
-  for (let i = 1; i < polygon.length; i++) {
-    ctx.lineTo(polygon[i].x, polygon[i].y);
+  for ( let polygon of polygons ) {
+	
+  	drawPolygon( polygon );
+  
   }
-  ctx.closePath();
-  ctx.fill();
   
 }
-
-// Socket listeners
-socket.on("updatePlayers", (players) => {
-  otherPlayers = players;
-  delete otherPlayers[socket.id];
-  drawAllEntities();
-});
-
-socket.on("updatePlayer", (playerData) => {
-  otherPlayers[playerData.id] = { x: playerData.x, y: playerData.y };
-  drawAllEntities();
-});
-
-socket.on("updateNPCs", (updatedNPCs) => {
-  npcs = updatedNPCs;
-  drawAllEntities();
-});
-
-socket.on("playerDisconnected", (playerId) => {
-  delete otherPlayers[playerId];
-  drawAllEntities();
-});
-
-const polygon = [
-  { x: 400, y: 300 },
-  { x: 450, y: 300 },
-  { x: 425, y: 250 }
-];
 
 function isInsidePolygon(point, polygon) {
   let x = point.x, y = point.y;
   let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    let xi = polygon[i].x, yi = polygon[i].y;
-    let xj = polygon[j].x, yj = polygon[j].y;
+  let vertices = polygon.vertices;
+
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    let xi = vertices[i].x, yi = vertices[i].y;
+    let xj = vertices[j].x, yj = vertices[j].y;
     let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }

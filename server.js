@@ -7,6 +7,7 @@ const http = require('http');
 const socketIO = require('socket.io');
 const mysql = require('mysql');
 const path = require('path');
+const fs = require('fs');
 
 // Express setup
 const app = express();
@@ -18,25 +19,15 @@ const port = 3000;
 const CANVAS_WIDTH = 800;  // Replace with your actual canvas width
 const CANVAS_HEIGHT = 600; // Replace with your actual canvas height
 
-// Define the yellow triangle vertices
-const polygon = [
-  { x: 400, y: 300 },
-  { x: 450, y: 300 },
-  { x: 425, y: 250 }
-];
-
-// Function to check if a point is inside the polygon
-function isInsidePolygon(point, polygon) {
-  let x = point.x, y = point.y;
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    let xi = polygon[i].x, yi = polygon[i].y;
-    let xj = polygon[j].x, yj = polygon[j].y;
-    let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
+// Dynamic Entity Loading
+const npcs = loadEntities('./src/entities/npcs');
+const newplayerObj = loadEntities('./src/entities/player');
+const otherPlayersObj = loadEntities('./src/entities/other-players');
+const allPolygons = loadEntities('./src/entities/polygons');
+//delete this
+const polygon = [];
+const players = {};
+const allEntities = [npcs, newplayerObj, otherPlayersObj, allPolygons];
 
 // Initialize MySQL connection pool using environment variables
 const pool = mysql.createPool({
@@ -79,18 +70,17 @@ pool.getConnection((err, connection) => {
   });
 });
 
-// Initialize game data
-const npcs = [
-  { name: "NPC1", stats: { Happiness: "maximum" }, x: 100, y: 100 },
-  { name: "NPC2", stats: { Happiness: "maximum" }, x: 150, y: 150 },
-  { name: "NPC3", stats: { Happiness: "maximum" }, x: 200, y: 200 }
-];
-const players = {};
-
-// Socket.io event handling
 io.on("connection", (socket) => {
   console.log("New client connected");
-
+  
+  socket.emit("updateEntities", allEntities);
+  
+  socket.emit("updatePlayerObj", newplayerObj);
+  
+  socket.emit("otherPlayerObj", otherPlayersObj);
+  
+  socket.emit("updatePolygons", allPolygons);
+  
   // Send initial NPC data to connected client
   socket.emit("updateNPCs", npcs);
 
@@ -105,10 +95,11 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("updatePlayer", { id: socket.id, x: data.x, y: data.y });
   });
 
-  // Broadcast chat messages to all clients
+  //To-do: build a chat window?
+  /* Broadcast chat messages to all clients
   socket.on("chatMessage", (message) => {
     io.emit("newChatMessage", message);
-  });
+  });*/
   
   // Remove players when they disconnect
   socket.on('disconnect', () => {
@@ -120,7 +111,6 @@ io.on("connection", (socket) => {
 	  // Inform other clients about the disconnection
 	  socket.broadcast.emit('playerDisconnected', socket.id);
 	});
-
   
 });
 
@@ -130,8 +120,19 @@ setInterval(() => {
     let dx = Math.floor(Math.random() * 11) - 5;
     let dy = Math.floor(Math.random() * 11) - 5;
 
-    // Check for collision with the yellow polygon
-    if (!isInsidePolygon({ x: npc.x + dx, y: npc.y + dy }, polygon)) {
+    // Initialize canMove to true for each NPC
+    let canMove = true;
+
+    // Check for collision with the polygons
+    for (let polygon of allPolygons) {
+      if (isInsidePolygon({ x: npc.x + dx, y: npc.y + dy }, polygon)) {
+        canMove = false;
+        break;
+      }
+    }
+
+    // Update NPC position if no collision is detected
+    if (canMove) {
       if (npc.x + dx >= 0 && npc.x + dx <= CANVAS_WIDTH) {
         npc.x += dx;
       }
@@ -140,6 +141,8 @@ setInterval(() => {
       }
     }
   });
+
+  // Emit updated NPCs to all connected clients
   io.emit("updateNPCs", npcs);
 }, 1000);
 
@@ -157,3 +160,31 @@ app.get('/', (req, res) => {
 server.listen(port, () => {
   console.log(`Server running on http://localhost:${port}/`);
 });
+
+//Functions
+function loadEntities(folderPath) {
+  const entities = [];
+  const absoluteFolderPath = path.join(__dirname, folderPath);
+  const files = fs.readdirSync(absoluteFolderPath);
+
+  files.forEach((file) => {
+    const entity = require(path.join(absoluteFolderPath, file));
+    entities.push(entity);
+  });
+
+  return entities;
+}
+
+function isInsidePolygon(point, polygon) {
+  let x = point.x, y = point.y;
+  let inside = false;
+  let vertices = polygon.vertices;
+
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    let xi = vertices[i].x, yi = vertices[i].y;
+    let xj = vertices[j].x, yj = vertices[j].y;
+    let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}

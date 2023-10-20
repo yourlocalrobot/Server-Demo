@@ -1,7 +1,7 @@
 module.exports = {
   // ... existing attributes
   appearance: { 
-	  color: "yellow", 
+	  color: "blue", 
 	  shape: "circle",
 	  radius: 15 
 	}
