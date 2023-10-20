@@ -113,10 +113,11 @@ const npcs = [
 
 // Socket.io event handling
 io.on("connection", (socket) => {
-  console.log("New client connected");
 
-  // Send initial NPC data to connected client
-  socket.emit("updateNPCs", npcs);
+	socket.emit("newUser");
+
+	
+  console.log("New client connected");
   
   socket.emit("updateEntities", allEntities);
 
@@ -166,7 +167,7 @@ setInterval(() => {
       }
     }
   });
-  io.emit("updateNPCs", npcs);
+  io.emit("updateEntities", allEntities);
 }, 1000);
 
 // Periodically update players to clients
