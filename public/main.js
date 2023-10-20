@@ -4,7 +4,8 @@ const socket = io();
 // Canvas and context setup
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const circleRadius = 15;
+
+const circleRadius = 15; // Assuming you're using a radius of 15
 
 // Set canvas dimensions
 canvas.width = window.innerWidth;
@@ -12,9 +13,9 @@ canvas.height = window.innerHeight;
 
 // If you want to handle window resizing:
 window.addEventListener('resize', function(){
-    canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
-    drawAllEntities( entities );
+    canvas.width = window.innerWidth;// - (2 * circleRadius);
+	canvas.height = window.innerHeight;// - (2 * circleRadius);
+    drawAllEntities(); // Redraw everything to fit the new size
 });
 
 // Initial player configuration
@@ -24,15 +25,13 @@ let playerY = 50;
 // Data structures to hold other players and NPCs
 let otherPlayers = {};
 let npcs = [];
-let allEntities = [];
-let playerObj = [];
-let polygons = [];
-let entities = [];
 
-//movement info
-let destination = { x: null, y: null };
-const speed = 3;
-let animationFrameId = null; // To keep track of the animation frame
+// Initialize canvas with a black background
+ctx.fillStyle = "black";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Initial draw for the player
+drawPlayer(playerX, playerY);
 
 // Event listeners
 document.addEventListener("keydown", handleKeydown);
@@ -40,122 +39,14 @@ document.addEventListener("mousedown", (event) => {
   event.preventDefault();
 });
 
+//click
 canvas.addEventListener("click", moveToClickPosition);
 document.addEventListener('keydown', handleArrowKeyPress);
 
-//Socket Events
-socket.on('updateEntities', (allEntities) => {
-	
-  entities = allEntities;
-  polygons = allEntities[3];
+let destination = { x: null, y: null };
+const speed = 3;
+let animationFrameId = null; // To keep track of the animation frame
 
-  // Draw all entities (or any other actions you want to take)
-  drawAllEntities( entities );
-  
-});
-
-socket.on("updatePlayer", (playerData) => {
-	
-  otherPlayers[playerData.id] = { x: playerData.x, y: playerData.y };
-  
-  drawAllEntities( entities );
-  
-});
-
-socket.on("updatePlayers", (players) => {
-	
-  otherPlayers = players;
-  
-  delete otherPlayers[socket.id];
-  
-  drawAllEntities( entities );
-  
-});
-
-socket.on("playerDisconnected", (playerId) => {
-	
-  delete otherPlayers[playerId];
-  
-  drawAllEntities( entities );
-  
-});
-
-socket.on("newUser", (playerId) => {
-	
-	alert('new user connected');
-	  
-});
-
-//Draw Functions
-function drawPlayer(x, y, object) {
-  ctx.fillStyle = object.appearance.color;
-  ctx.beginPath();
-  ctx.arc(x, y, object.appearance.radius, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawOtherPlayer(x, y, object) {
-  ctx.fillStyle = object.appearance.color;
-  ctx.beginPath();
-  ctx.arc(x, y, object.appearance.radius, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawNPC( object ) {
-  ctx.fillStyle = object.appearance.color;
-  ctx.beginPath();
-  ctx.arc(object.x, object.y, object.appearance.radius, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawPolygon(polygon) {
-    const { vertices, appearance } = polygon;
-    ctx.beginPath();
-    ctx.moveTo(vertices[0].x, vertices[0].y);
-    for(let i = 1; i < vertices.length; i++) {
-        ctx.lineTo(vertices[i].x, vertices[i].y);
-    }
-    ctx.closePath();
-    ctx.fillStyle = appearance.color;
-    ctx.fill();
-}
-
-function drawAllEntities( entities ) {
-	
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	
-	// Initialize canvas with a black background
-	ctx.fillStyle = "black";
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	
-	//Draw The Player
-	drawPlayer( playerX, playerY, entities[1][0] );
-	
-	//Draw Other Players
-	for ( let playerId in otherPlayers ) {
-		
-    	let player = otherPlayers[playerId];
-    	
-		drawOtherPlayer( player.x, player.y, entities[2][0] );
-		
-  	}
-  	
-  	//Draw NPCs
-  	for ( let npc of entities[0] ) {
-	  		  	
-   		drawNPC(npc);
-   		
-  	}
-  	
-  	for ( let polygon of entities[3] ) {
-	  		  	
-   		drawPolygon(polygon);
-   		
-  	}
-  
-}
-
-//movement functions
 function moveToClickPosition(event) {
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -184,7 +75,7 @@ function movePlayer() {
         const newY = playerY + speed * Math.sin(angle);
 
 	          // Collision detection for player
-		  if (!isInsidePolygon({ x: newX, y: newY }, polygons)) {
+		  if (!isInsidePolygon({ x: newX, y: newY }, polygon)) {
 		    if (newX >= 0 && newX <= canvas.width) {
 		      playerX = newX;
 		    }
@@ -196,7 +87,7 @@ function movePlayer() {
         // Emit the player's new position to the server
         socket.emit('updatePlayerPosition', { x: playerX, y: playerY });
 
-        drawAllEntities( entities );
+        drawAllEntities();
 
         // Continue the animation
         animationFrameId = requestAnimationFrame(movePlayer);
@@ -210,7 +101,7 @@ function movePlayer() {
             playerY = destination.y;
         }
         
-        drawAllEntities( entities );
+        drawAllEntities();
     }
 }
 
@@ -245,7 +136,7 @@ function handleKeydown(event) {
   // Collision detection for player using arrow keys
   const newX = playerX + dx;
   const newY = playerY + dy;
-  if (!isInsidePolygon({ x: newX, y: newY }, polygons)) {
+  if (!isInsidePolygon({ x: newX, y: newY }, polygon)) {
     if (newX >= 0 && newX <= canvas.width) {
       playerX = newX;
     }
@@ -255,14 +146,86 @@ function handleKeydown(event) {
   }
 
   socket.emit('updatePlayerPosition', { x: playerX, y: playerY });
-  
-  drawAllEntities( entities );
+  drawAllEntities();
 }
 
-//out-dated colision detection function to-do: make this work with all polygons/Volumes/MAC%20HD/Users/ben/Repositories/ServerGameDemo/Server-Demo/public/main.js
+// Drawing functions
+function drawPlayer(x, y) {
+  ctx.fillStyle = "blue";
+  ctx.beginPath();
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawOtherPlayer(x, y) {
+  ctx.fillStyle = "red";
+  ctx.beginPath();
+  ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawNPC(npc) {
+  ctx.fillStyle = "green";
+  ctx.beginPath();
+  ctx.arc(npc.x, npc.y, circleRadius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawAllEntities() {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  drawPlayer(playerX, playerY);
+  
+  for (let playerId in otherPlayers) {
+    let player = otherPlayers[playerId];
+    drawOtherPlayer(player.x, player.y);
+  }
+  
+  for (let npc of npcs) {
+    drawNPC(npc);
+  }
+  
+  // Draw the yellow polygon
+  ctx.fillStyle = "yellow";
+  ctx.beginPath();
+  ctx.moveTo(polygon[0].x, polygon[0].y);
+  for (let i = 1; i < polygon.length; i++) {
+    ctx.lineTo(polygon[i].x, polygon[i].y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  
+}
+
+// Socket listeners
+socket.on("updatePlayers", (players) => {
+  otherPlayers = players;
+  delete otherPlayers[socket.id];
+  drawAllEntities();
+});
+
+socket.on("updatePlayer", (playerData) => {
+  otherPlayers[playerData.id] = { x: playerData.x, y: playerData.y };
+  drawAllEntities();
+});
+
+socket.on("updateNPCs", (updatedNPCs) => {
+  npcs = updatedNPCs;
+  drawAllEntities();
+});
+
+socket.on("playerDisconnected", (playerId) => {
+  delete otherPlayers[playerId];
+  drawAllEntities();
+});
+
+const polygon = [
+  { x: 400, y: 300 },
+  { x: 450, y: 300 },
+  { x: 425, y: 250 }
+];
+
 function isInsidePolygon(point, polygon) {
-	
-/*	
   let x = point.x, y = point.y;
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -271,7 +234,6 @@ function isInsidePolygon(point, polygon) {
     let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
     if (intersect) inside = !inside;
   }
-  return inside;*/
-  
-  return false;
+  return inside;
 }
+
