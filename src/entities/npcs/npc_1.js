@@ -1,5 +1,5 @@
 module.exports = {
-  name: "NPC1",
+  npc_name: "NPC1",
   stats: { Happiness: "maximum" },
   x: 100,
   y: 100,
