@@ -5,5 +5,7 @@ module.exports = {
   y: 200,
   skill: 0,
   isGlowing: false,
-  appearance: { color: "green", shape: "circle", radius: 15 }
+  appearance: { color: "green", shape: "circle", radius: 15 },
+  parents: [],
+  children: []
 };

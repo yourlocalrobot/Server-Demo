@@ -303,4 +303,98 @@ function makeNpcGlow(npc, action) {
   }
 }
 
+function breedNPCs(npc1, npc2, npcs) {
+  // Extract the color attributes from both NPCs
+  const color1 = npc1.appearance.color;
+  const color2 = npc2.appearance.color;
 
+  // Combine the colors (use your chosen blending algorithm here)
+  const newColor = color1 + color2; // Replace with actual blending logic
+
+  // Create a new NPC with the combined color
+  const newNPC = {
+    npc_name: `NPC_${Date.now()}`,
+    stats: { Happiness: "maximum" },
+    x: Math.floor(Math.random() * 800),
+    y: Math.floor(Math.random() * 600),
+    skill: 0,
+    isGlowing: false,
+    appearance: { color: newColor, shape: "circle", radius: 10 },
+    parents: [npc1.npc_name, npc2.npc_name],
+    children: []
+  };
+
+  // Update the parent NPCs to include this new child
+  npc1.children.push(newNPC.npc_name);
+  npc2.children.push(newNPC.npc_name);
+
+  // Convert the newNPC object to a string
+  const npcString = `module.exports = ${JSON.stringify(newNPC, null, 2)};`;
+
+  // Define the path where the new NPC file will be saved
+  const npcFilePath = path.join(__dirname, 'src/entities/npcs', `${newNPC.npc_name}.js`);
+
+  // Write the new NPC to a file
+  fs.writeFileSync(npcFilePath, npcString);
+
+  // Add the new NPC to the npcs array
+  npcs.push(newNPC);
+
+  return newNPC;
+}
+
+// Your existing npcs array and breedNPCs function here
+
+// Helper function to check if two NPCs are related
+function areRelated(npc1, npc2) {
+  // Check for parent-child relationship
+  if (npc1.parents.includes(npc2.npc_name) || npc2.parents.includes(npc1.npc_name)) {
+    return true;
+  }
+
+  // Check for sibling relationship
+  if (npc1.parents.some(parent => npc2.parents.includes(parent))) {
+    return true;
+  }
+
+  // Check for grandparent relationship
+  const grandparents1 = npc1.parents.map(parent => npcs.find(npc => npc.npc_name === parent).parents).flat();
+  const grandparents2 = npc2.parents.map(parent => npcs.find(npc => npc.npc_name === parent).parents).flat();
+  if (grandparents1.some(grandparent => grandparents2.includes(grandparent))) {
+    return true;
+  }
+
+  return false;
+}
+
+// Function to randomly breed two NPCs
+function randomBreeding(npcs) {
+  // Generate a random number between 0 and 1
+  const randomChance = Math.random();
+
+  // Set a threshold for breeding to occur (e.g., 5% chance)
+  const breedingThreshold = 0.05;
+
+  // Check if breeding should occur
+  if (randomChance < breedingThreshold) {
+    // Randomly select two parent NPCs
+    const parent1Index = Math.floor(Math.random() * npcs.length);
+    let parent2Index;
+    do {
+      parent2Index = Math.floor(Math.random() * npcs.length);
+    } while (parent1Index === parent2Index || areRelated(npcs[parent1Index], npcs[parent2Index]));
+
+    const parent1 = npcs[parent1Index];
+    const parent2 = npcs[parent2Index];
+
+    // Call the breedNPCs function
+    const newNPC = breedNPCs(parent1, parent2, npcs);
+
+    // Log the new NPC for debugging
+    console.log(`New NPC created: ${newNPC.npc_name}`);
+  }
+}
+
+// Set an interval to run the randomBreeding function every few minutes
+// (e.g., every 3 minutes or 180000 milliseconds)
+setInterval(() => randomBreeding(npcs), 180000);
