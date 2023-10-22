@@ -96,6 +96,12 @@ io.on("connection", (socket) => {
 		};
 
 	});
+	
+	  // Broadcast updated player's position to others
+	  socket.on("updatePlayerPosition", (data) => {
+	    players[socket.id] = { x: data.x, y: data.y };
+	    socket.broadcast.emit("updatePlayer", { id: socket.id, x: data.x, y: data.y });
+	  });
 
 	socket.on('npcInteraction', async (data) => {
 
@@ -109,16 +115,12 @@ io.on("connection", (socket) => {
 				
 				console.log('player interacted with ' + data.npc.npc_name);
 				
-				console.log(data.npc.isGlowing);
-
 				// Freeze the npc
 				stoppedNPCs.push(data.npc);
 
 				// Wait for 10 seconds
 				await sleep(10000);
 				
-				console.log(data.npc.isGlowing);
-
 				// Remove the NPC from the stoppedNPCs array
 				index = stoppedNPCs.findIndex(npc => npc.npc_name === data.npc.npc_name);
 				
@@ -271,10 +273,7 @@ function sleep(ms) {
 }
 
 function makeNpcGlow(npc, action) {
-  // Debug: Log the NPC object and action
-  console.log("Debug: NPC object:", npc);
-  console.log("Debug: Action:", action);
-
+	
   // Find the index of the NPC in the npcs array
   const npcIndex = npcs.findIndex(existingNpc => existingNpc.npc_name === npc.npc_name);
 
@@ -287,27 +286,17 @@ function makeNpcGlow(npc, action) {
     // Start the glow
     npcs[npcIndex].isGlowing = true;
 
-    // Debug: Log the updated npcs array
-    console.log("Debug: Updated npcs array on start:", npcs);
-
     // Emit the updated NPC data to all connected clients
     io.emit("updateNPCs", npcs);
 
     // Set a timeout to stop the glow after 3 seconds
     setTimeout(() => {
       npcs[npcIndex].isGlowing = false;
-
-      // Debug: Log the updated npcs array
-      console.log("Debug: Updated npcs array on timeout:", npcs);
-
       io.emit("updateNPCs", npcs);
     }, 3000);
   } else if (action === 'stop') {
     // Stop the glow immediately
     npcs[npcIndex].isGlowing = false;
-
-    // Debug: Log the updated npcs array
-    console.log("Debug: Updated npcs array on stop:", npcs);
 
     // Emit the updated NPC data to all connected clients
     io.emit("updateNPCs", npcs);

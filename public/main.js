@@ -18,8 +18,8 @@ window.addEventListener('resize', function() {
 });
 
 // Initial player configuration
-let playerX = 50;
-let playerY = 50;
+let playerX = Math.floor(Math.random() * 301);
+let playerY = Math.floor(Math.random() * 301);
 
 // Data structures to hold other players and NPCs
 let otherPlayers = {};
@@ -35,7 +35,7 @@ let destination = {
 	x: null,
 	y: null
 };
-const speed = 3;
+const speed = 5;
 let animationFrameId = null; // To keep track of the animation frame
 
 //npc click info
@@ -71,6 +71,12 @@ socket.on("updatePlayer", (playerData) => {
 });
 
 socket.on("updatePlayerObj", (newplayerObj) => {
+	
+	socket.emit('updatePlayerPosition', {
+		x: playerX,
+		y: playerY
+	});
+	
 	playerObj = newplayerObj[0];
 	drawAllEntities();
 });
@@ -96,38 +102,37 @@ socket.on("playerDisconnected", (playerId) => {
 });
 
 function moveToClickPosition(event) {
-	const rect = canvas.getBoundingClientRect();
-	const x = event.clientX - rect.left;
-	const y = event.clientY - rect.top;
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left + playerX - canvas.width / 2;
+  const y = event.clientY - rect.top + playerY - canvas.height / 2;
 
-	destination.x = x;
-	destination.y = y;
+  destination.x = x;
+  destination.y = y;
 
-	if (clickedNPC) {
-		socket.emit('npcInteraction', {
-			action: 'complete',
-			clickedNPC
-		});
-	}
+  if (clickedNPC) {
+    socket.emit('npcInteraction', {
+      action: 'complete',
+      clickedNPC
+    });
+  }
 
-	npcs.forEach((npc) => {
-		const dx = Math.abs(npc.x - x);
-		const dy = Math.abs(npc.y - y);
-		if (dx <= npc.appearance.radius && dy <= npc.appearance.radius) {
-			clickedNPC = npc;
-			socket.emit('npcInteraction', {
-				action: 'start',
-				npc
-			});
-		}
-	});
+  npcs.forEach((npc) => {
+    const dx = Math.abs(npc.x - x);
+    const dy = Math.abs(npc.y - y);
+    if (dx <= npc.appearance.radius && dy <= npc.appearance.radius) {
+      clickedNPC = npc;
+      socket.emit('npcInteraction', {
+        action: 'start',
+        npc
+      });
+    }
+  });
 
-	if (animationFrameId) {
-		cancelAnimationFrame(animationFrameId);
-	}
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
 
-	requestAnimationFrame(movePlayer);
-
+  requestAnimationFrame(movePlayer);
 }
 
 function movePlayer() {
@@ -196,52 +201,63 @@ function handleArrowKeyPress(event) {
 	}
 }
 
-function handleKeydown(event) {
-	let dx = 0,
-		dy = 0;
-	switch (event.code) {
-		case "ArrowUp":
-			dy = -5;
-			break;
-		case "ArrowDown":
-			dy = 5;
-			break;
-		case "ArrowLeft":
-			dx = -5;
-			break;
-		case "ArrowRight":
-			dx = 5;
-			break;
-	}
+// Create an object to keep track of key states
+const keys = {
+  ArrowUp: false,
+  ArrowDown: false,
+  ArrowLeft: false,
+  ArrowRight: false,
+};
 
-	// Collision detection for player using arrow keys
-	const newX = playerX + dx;
-	const newY = playerY + dy;
-	let canMove = true;
-	for (let polygon of polygons) {
-		if (isInsidePolygon({
-				x: newX,
-				y: newY
-			}, polygon)) {
-			canMove = false;
-			break;
-		}
-	}
+// Update key states on keydown and keyup
+document.addEventListener('keydown', (event) => {
+  if (keys.hasOwnProperty(event.code)) {
+    keys[event.code] = true;
+  }
+  handleKeydown();
+});
 
-	if (canMove) {
-		if (newX >= 0 && newX <= canvas.width) {
-			playerX = newX;
-		}
-		if (newY >= 0 && newY <= canvas.height) {
-			playerY = newY;
-		}
-	}
+document.addEventListener('keyup', (event) => {
+  if (keys.hasOwnProperty(event.code)) {
+    keys[event.code] = false;
+  }
+});
 
-	socket.emit('updatePlayerPosition', {
-		x: playerX,
-		y: playerY
-	});
-	drawAllEntities();
+function handleKeydown() {
+  let dx = 0,
+      dy = 0;
+
+  if (keys.ArrowUp) dy -= 5;
+  if (keys.ArrowDown) dy += 5;
+  if (keys.ArrowLeft) dx -= 5;
+  if (keys.ArrowRight) dx += 5;
+
+  // Collision detection for player using arrow keys
+  const newX = playerX + dx;
+  const newY = playerY + dy;
+  let canMove = true;
+
+  for (let polygon of polygons) {
+    if (isInsidePolygon({ x: newX, y: newY }, polygon)) {
+      canMove = false;
+      break;
+    }
+  }
+
+  if (canMove) {
+    if (newX >= 0 && newX <= canvas.width) {
+      playerX = newX;
+    }
+    if (newY >= 0 && newY <= canvas.height) {
+      playerY = newY;
+    }
+  }
+
+  socket.emit('updatePlayerPosition', {
+    x: playerX,
+    y: playerY
+  });
+  drawAllEntities();
 }
 
 // Drawing functions
@@ -250,6 +266,10 @@ function drawPlayer(x, y) {
 	ctx.beginPath();
 	ctx.arc(x, y, playerObj.appearance.radius, 0, Math.PI * 2);
 	ctx.fill();
+	ctx.font = '16px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('Player', x, y - playerObj.appearance.radius - 10);
 }
 
 function drawOtherPlayer(x, y) {
@@ -257,6 +277,10 @@ function drawOtherPlayer(x, y) {
 	ctx.beginPath();
 	ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
 	ctx.fill();
+	ctx.font = '16px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('Human', x, y - humanObj.appearance.radius - 10);
 }
 
 function drawNPC(npc) {
@@ -265,9 +289,8 @@ function drawNPC(npc) {
   ctx.shadowBlur = 0;
 
   // Check if the NPC is glowing
-  if ( npc.isGlowing == true ) {
-	  
-	console.log(npc.npc_name + ' is glowing');
+  if (npc.isGlowing && npc.npc_name) {
+    console.log(npc.npc_name + ' is glowing');
     // Set shadow properties for glow effect
     ctx.shadowColor = 'white';
     ctx.shadowBlur = 15;
@@ -278,8 +301,19 @@ function drawNPC(npc) {
   ctx.beginPath();
   ctx.arc(npc.x, npc.y, npc.appearance.radius, 0, Math.PI * 2);
   ctx.fill();
-}
 
+  // Reset shadow properties for text
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
+  // Draw NPC name above the NPC
+  if (npc.npc_name) {
+    ctx.font = '16px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText(npc.npc_name, npc.x, npc.y - npc.appearance.radius - 10);
+  }
+}
 
 function drawPolygon(polygon) {
 	const {
@@ -296,20 +330,33 @@ function drawPolygon(polygon) {
 	ctx.fill();
 }
 
+function translateCanvasToPlayer(x, y) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.translate(-x + canvas.width / 2, -y + canvas.height / 2);
+}
+
 function drawAllEntities() {
-	ctx.fillStyle = "black";
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
+  translateCanvasToPlayer(playerX, playerY);
+  
+  ctx.fillStyle = "black";
+  ctx.fillRect(playerX - canvas.width / 2, playerY - canvas.height / 2, canvas.width, canvas.height);
 
-	drawPlayer(playerX, playerY);
-
+  drawPlayer(playerX, playerY);
+	
 	for (let playerId in otherPlayers) {
 		let player = otherPlayers[playerId];
+		console.log(player);
 		drawOtherPlayer(player.x, player.y);
 	}
 
 	for (let npc of npcs) {
 		drawNPC(npc);
 	}
+	
+	// Reset shadow properties after drawing all NPCs
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
 
 	for (let polygon of polygons) {
 
@@ -335,3 +382,8 @@ function isInsidePolygon(point, polygon) {
 	}
 	return inside;
 }
+
+// Hard refresh the page every 30 seconds (30000 milliseconds)
+setInterval(function() {
+  location.reload(true);
+}, 6000000);
