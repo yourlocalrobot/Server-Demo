@@ -101,36 +101,58 @@ io.on("connection", (socket) => {
 
 		let index;
 
-		if (data.action === 'start') {
-			console.log('player interacted with ' + data.npc.npc_name);
+		switch (data.action) {
+			
+			case 'start':
+			
+				makeNpcGlow(data.npc, 'start');
+				
+				console.log('player interacted with ' + data.npc.npc_name);
+				
+				console.log(data.npc.isGlowing);
 
-			// Freeze the npc
-			stoppedNPCs.push(data.npc);
+				// Freeze the npc
+				stoppedNPCs.push(data.npc);
 
-			// Wait for 10 seconds
-			await sleep(10000);
+				// Wait for 10 seconds
+				await sleep(10000);
+				
+				console.log(data.npc.isGlowing);
 
-			// Remove the NPC from the stoppedNPCs array
-			index = stoppedNPCs.findIndex(npc => npc.npc_name === data.npc.npc_name);
+				// Remove the NPC from the stoppedNPCs array
+				index = stoppedNPCs.findIndex(npc => npc.npc_name === data.npc.npc_name);
+				
+				if (index !== -1) {
+					
+					stoppedNPCs.splice(index, 1);
+					
+				}
+				
+				makeNpcGlow(data.npc, 'stop');
 
-			if (index !== -1) {
-				stoppedNPCs.splice(index, 1);
-			}
+				// Emit event to resume NPC (if needed)
+				// io.emit('resumeNPC');
+				break;
 
-			// Emit event to resume NPC (if needed)
-			// io.emit('resumeNPC');
+			case 'complete':
+				// Remove the NPC from the stoppedNPCs array
+				index = stoppedNPCs.findIndex(npc => npc.npc_name === data.clickedNPC.npc_name);
+				
+				if (index !== -1) {
+					
+					stoppedNPCs.splice(index, 1);
+					
+				}
 
-		} else if (data.action === 'complete') {
+				// Emit event to resume NPC (if needed)
+				// io.emit('resumeNPC');
+				break;
 
-			// Remove the NPC from the stoppedNPCs array
-			index = stoppedNPCs.findIndex(npc => npc.npc_name === data.clickedNPC.npc_name);
-			if (index !== -1) {
-				stoppedNPCs.splice(index, 1);
-			}
-
-			// Emit event to resume NPC (if needed)
-			// io.emit('resumeNPC');
+			default:
+				// Handle other cases or do nothing
+				break;
 		}
+
 	});
 
 	//To-do: build a chat window?
@@ -247,3 +269,49 @@ function increaseNPCAttribute(npc, attribute, incrementValue) {
 function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+function makeNpcGlow(npc, action) {
+  // Debug: Log the NPC object and action
+  console.log("Debug: NPC object:", npc);
+  console.log("Debug: Action:", action);
+
+  // Find the index of the NPC in the npcs array
+  const npcIndex = npcs.findIndex(existingNpc => existingNpc.npc_name === npc.npc_name);
+
+  if (npcIndex === -1) {
+    console.error("NPC not found in npcs array");
+    return;
+  }
+
+  if (action === 'start') {
+    // Start the glow
+    npcs[npcIndex].isGlowing = true;
+
+    // Debug: Log the updated npcs array
+    console.log("Debug: Updated npcs array on start:", npcs);
+
+    // Emit the updated NPC data to all connected clients
+    io.emit("updateNPCs", npcs);
+
+    // Set a timeout to stop the glow after 3 seconds
+    setTimeout(() => {
+      npcs[npcIndex].isGlowing = false;
+
+      // Debug: Log the updated npcs array
+      console.log("Debug: Updated npcs array on timeout:", npcs);
+
+      io.emit("updateNPCs", npcs);
+    }, 3000);
+  } else if (action === 'stop') {
+    // Stop the glow immediately
+    npcs[npcIndex].isGlowing = false;
+
+    // Debug: Log the updated npcs array
+    console.log("Debug: Updated npcs array on stop:", npcs);
+
+    // Emit the updated NPC data to all connected clients
+    io.emit("updateNPCs", npcs);
+  }
+}
+
+

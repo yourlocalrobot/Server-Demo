@@ -260,11 +260,26 @@ function drawOtherPlayer(x, y) {
 }
 
 function drawNPC(npc) {
-	ctx.fillStyle = npc.appearance.color;
-	ctx.beginPath();
-	ctx.arc(npc.x, npc.y, npc.appearance.radius, 0, Math.PI * 2);
-	ctx.fill();
+  // Reset shadow properties
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
+  // Check if the NPC is glowing
+  if ( npc.isGlowing == true ) {
+	  
+	console.log(npc.npc_name + ' is glowing');
+    // Set shadow properties for glow effect
+    ctx.shadowColor = 'white';
+    ctx.shadowBlur = 15;
+  }
+
+  // Draw the NPC
+  ctx.fillStyle = npc.appearance.color;
+  ctx.beginPath();
+  ctx.arc(npc.x, npc.y, npc.appearance.radius, 0, Math.PI * 2);
+  ctx.fill();
 }
+
 
 function drawPolygon(polygon) {
 	const {

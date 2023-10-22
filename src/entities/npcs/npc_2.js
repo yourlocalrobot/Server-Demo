@@ -4,5 +4,6 @@ module.exports = {
   x: 300,
   y: 400,
   skill: 0,
+  isGlowing: false,
   appearance: { color: "orange", shape: "circle", radius: 15 }
 };
