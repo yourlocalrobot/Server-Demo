@@ -38,6 +38,29 @@ let destination = {
 const speed = 5;
 let animationFrameId = null; // To keep track of the animation frame
 
+const colorNames = {
+  "red": { r: 255, g: 0, b: 0 },
+  "blue": { r: 0, g: 0, b: 255 },
+  "green": { r: 0, g: 128, b: 0 },
+  "yellow": { r: 255, g: 255, b: 0 },
+  "orange": { r: 255, g: 165, b: 0 },
+  "purple": { r: 128, g: 0, b: 128 },
+  "pink": { r: 255, g: 192, b: 203 },
+  "brown": { r: 165, g: 42, b: 42 },
+  "black": { r: 0, g: 0, b: 0 },
+  "white": { r: 255, g: 255, b: 255 },
+  "gray": { r: 128, g: 128, b: 128 },
+  "teal": { r: 0, g: 128, b: 128 },
+  "cyan": { r: 0, g: 255, b: 255 },
+  "magenta": { r: 255, g: 0, b: 255 },
+  "lime": { r: 0, g: 255, b: 0 },
+  "olive": { r: 128, g: 128, b: 0 },
+  "maroon": { r: 128, g: 0, b: 0 },
+  "navy": { r: 0, g: 0, b: 128 },
+  "gold": { r: 255, g: 215, b: 0 },
+  "silver": { r: 192, g: 192, b: 192 }
+};
+
 //npc click info
 let clickedNPC = null;
 
@@ -262,7 +285,7 @@ function handleKeydown() {
 
 // Drawing functions
 function drawPlayer(x, y) {
-	ctx.fillStyle = playerObj.appearance.color;
+	ctx.fillStyle = getColor(playerObj.appearance.color);
 	ctx.beginPath();
 	ctx.arc(x, y, playerObj.appearance.radius, 0, Math.PI * 2);
 	ctx.fill();
@@ -273,7 +296,7 @@ function drawPlayer(x, y) {
 }
 
 function drawOtherPlayer(x, y) {
-	ctx.fillStyle = humanObj.appearance.color;
+	ctx.fillStyle = getColor(humanObj.appearance.color);
 	ctx.beginPath();
 	ctx.arc(x, y, circleRadius, 0, Math.PI * 2);
 	ctx.fill();
@@ -292,12 +315,12 @@ function drawNPC(npc) {
   if (npc.isGlowing && npc.npc_name) {
     console.log(npc.npc_name + ' is glowing');
     // Set shadow properties for glow effect
-    ctx.shadowColor = 'white';
+    ctx.shadowColor = getColor('white');
     ctx.shadowBlur = 15;
   }
 
   // Draw the NPC
-  ctx.fillStyle = npc.appearance.color;
+  ctx.fillStyle = getColor(npc.appearance.color);
   ctx.beginPath();
   ctx.arc(npc.x, npc.y, npc.appearance.radius, 0, Math.PI * 2);
   ctx.fill();
@@ -326,7 +349,7 @@ function drawPolygon(polygon) {
 		ctx.lineTo(vertices[i].x, vertices[i].y);
 	}
 	ctx.closePath();
-	ctx.fillStyle = appearance.color;
+	ctx.fillStyle = getColor(appearance.color);
 	ctx.fill();
 }
 
@@ -387,3 +410,20 @@ function isInsidePolygon(point, polygon) {
 setInterval(function() {
   location.reload(true);
 }, 6000000);
+
+
+function getColor(color) {
+  console.log("Received color: ", color); // Debugging line
+  if (typeof color === 'object' && color.r !== undefined && color.g !== undefined && color.b !== undefined) {
+    return `rgb(${color.r}, ${color.g}, ${color.b})`;
+  } else if (typeof color === 'string') {
+    if (colorNames.hasOwnProperty(color)) {
+      console.log("Returning color: ", colorNames[color]); // Debugging line
+      return `rgb(${colorNames[color].r}, ${colorNames[color].g}, ${colorNames[color].b})`;
+    }
+    console.log("Unrecognized color name, returning as is: ", color); // Debugging line
+    return color; // If it's already an RGB value or unrecognized, return it as is
+  }
+  console.log("Unrecognized format, returning black"); // Debugging line
+  return 'black'; // Default color if the format is unrecognized
+}

@@ -30,6 +30,9 @@ const players = {};
 const allEntities = [npcs, newplayerObj, otherPlayersObj, allPolygons];
 const stoppedNPCs = [];
 
+const thirtyMinutesInMilliseconds = 30 * 60 * 1000;
+
+
 // Initialize MySQL connection pool using environment variables
 const pool = mysql.createPool({
 	connectionLimit: 10, // Adjust the number as needed
@@ -309,7 +312,9 @@ function breedNPCs(npc1, npc2, npcs) {
   const color2 = npc2.appearance.color;
 
   // Combine the colors (use your chosen blending algorithm here)
-  const newColor = color1 + color2; // Replace with actual blending logic
+  const newColor = averageBlend(color1, color2); //color1 + color2; // Replace with actual blending logic
+  
+  console.log(newColor);
 
   // Create a new NPC with the combined color
   const newNPC = {
@@ -321,12 +326,17 @@ function breedNPCs(npc1, npc2, npcs) {
     isGlowing: false,
     appearance: { color: newColor, shape: "circle", radius: 10 },
     parents: [npc1.npc_name, npc2.npc_name],
-    children: []
+    children: [],
+    behavior: 'default'
   };
 
   // Update the parent NPCs to include this new child
   npc1.children.push(newNPC.npc_name);
   npc2.children.push(newNPC.npc_name);
+  
+    // Update parent NPC files
+  updateNPCFile(npc1);
+  updateNPCFile(npc2);
 
   // Convert the newNPC object to a string
   const npcString = `module.exports = ${JSON.stringify(newNPC, null, 2)};`;
@@ -342,6 +352,47 @@ function breedNPCs(npc1, npc2, npcs) {
 
   return newNPC;
 }
+
+const colorNames = {
+  "red": { r: 255, g: 0, b: 0 },
+  "blue": { r: 0, g: 0, b: 255 },
+  "green": { r: 0, g: 128, b: 0 },
+  "yellow": { r: 255, g: 255, b: 0 },
+  "orange": { r: 255, g: 165, b: 0 },
+  "purple": { r: 128, g: 0, b: 128 },
+  "pink": { r: 255, g: 192, b: 203 },
+  "brown": { r: 165, g: 42, b: 42 },
+  "black": { r: 0, g: 0, b: 0 },
+  "white": { r: 255, g: 255, b: 255 },
+  "gray": { r: 128, g: 128, b: 128 },
+  "teal": { r: 0, g: 128, b: 128 },
+  "cyan": { r: 0, g: 255, b: 255 },
+  "magenta": { r: 255, g: 0, b: 255 },
+  "lime": { r: 0, g: 255, b: 0 },
+  "olive": { r: 128, g: 128, b: 0 },
+  "maroon": { r: 128, g: 0, b: 0 },
+  "navy": { r: 0, g: 0, b: 128 },
+  "gold": { r: 255, g: 215, b: 0 },
+  "silver": { r: 192, g: 192, b: 192 }
+};
+
+function getColorRGB(color) {
+  if (typeof color === 'string') {
+    return colorNames[color] || { r: 0, g: 0, b: 0 }; // Default to black if the color name is not found
+  }
+  return color;
+}
+
+function averageBlend(color1, color2) {
+  const rgb1 = getColorRGB(color1);
+  const rgb2 = getColorRGB(color2);
+  const r = Math.floor((rgb1.r + rgb2.r) / 2);
+  const g = Math.floor((rgb1.g + rgb2.g) / 2);
+  const b = Math.floor((rgb1.b + rgb2.b) / 2);
+  return { r, g, b };
+  console.log(r + ' ' + g + ' ' + b);
+}
+
 
 // Your existing npcs array and breedNPCs function here
 
@@ -395,6 +446,17 @@ function randomBreeding(npcs) {
   }
 }
 
+function updateNPCFile(npc) {
+  // Convert the updated NPC object to a string
+  const updatedNPCString = `module.exports = ${JSON.stringify(npc, null, 2)};`;
+
+  // Define the path where the updated NPC file will be saved
+  const updatedNPCFilePath = path.join(__dirname, 'src/entities/npcs', `${npc.npc_name}.js`);
+
+  // Write the updated NPC to a file
+  fs.writeFileSync(updatedNPCFilePath, updatedNPCString);
+}
+
 // Set an interval to run the randomBreeding function every few minutes
-// (e.g., every 3 minutes or 180000 milliseconds)
-setInterval(() => randomBreeding(npcs), 180000);
+// (e.g., every 30 minutes or 180000 milliseconds)
+setInterval(() => randomBreeding(npcs), thirtyMinutesInMilliseconds);
